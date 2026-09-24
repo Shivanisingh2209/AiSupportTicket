@@ -15,10 +15,8 @@ public class CreateTicketRequest {
     @NotBlank(message = "Subject is required")
     private String subject;
 
-    @NotBlank(message = "Description is required")
     private String description;
 
-    @NotBlank(message = "Priority is required")
     private String priority;
 
     public String getCustomerName() {

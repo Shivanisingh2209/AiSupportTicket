@@ -46,19 +46,13 @@ public class TicketController {
     public ResponseEntity<Ticket> getTicketById(@PathVariable String id) {
         Ticket ticket = ticketService.getTicketById(id);
 
-        if (ticket == null) {
-            return ResponseEntity.notFound().build();
-        }
         return ResponseEntity.ok(ticket);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTicketById(@PathVariable String id) {
-        boolean deleted = ticketService.deleteTicketById(id);
+        ticketService.deleteTicketById(id);
 
-        if(!deleted) {
-            return ResponseEntity.notFound().build();
-        }
         return ResponseEntity.noContent().build();
     }
 

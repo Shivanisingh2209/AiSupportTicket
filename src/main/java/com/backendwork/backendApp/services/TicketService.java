@@ -1,6 +1,7 @@
 package com.backendwork.backendApp.services;
 
 import com.backendwork.backendApp.entity.Ticket;
+import com.backendwork.backendApp.exception.TicketNotFoundException;
 import com.backendwork.backendApp.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,17 +35,23 @@ public class TicketService {
     }
 
     public Ticket getTicketById(String id) {
-        return ticketRepository.findById(id).orElse(null);
+        return ticketRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new TicketNotFoundException(
+                                "Ticket not found with id :" + id
+                        ));
     }
 
-    public boolean deleteTicketById(String id) {
+    public void deleteTicketById(String id) {
 
         if (!ticketRepository.existsById(id)) {
-            return false;
+            throw new TicketNotFoundException(
+                    "Ticket not found with id: " + id
+            );
         }
 
         ticketRepository.deleteById(id);
-        return true;
     }
 
     public Ticket updateTicket(String id, Ticket updatedTicket) {
