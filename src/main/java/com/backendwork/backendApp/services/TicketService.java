@@ -28,6 +28,10 @@ public class TicketService {
         return ticketRepository.findByStatus(status);
     }
 
+    public List<Ticket> getTicketsByPriority(String priority) {
+        return ticketRepository.findByPriority(priority);
+    }
+
     public Ticket createTicket(Ticket ticket) {
         if (ticket.getStatus() == null) {
             ticket.setStatus("OPEN");

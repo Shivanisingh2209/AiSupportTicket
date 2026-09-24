@@ -59,6 +59,17 @@ public class TicketController {
         return ResponseEntity.ok(tickets);
     }
 
+    @GetMapping("/priority")
+    public ResponseEntity<List<Ticket>> getTicketsByPriority(
+            @RequestParam String priority
+    ) {
+
+        List<Ticket> tickets =
+                ticketService.getTicketsByPriority(priority);
+
+        return ResponseEntity.ok(tickets);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Ticket> getTicketById(@PathVariable String id) {
         Ticket ticket = ticketService.getTicketById(id);

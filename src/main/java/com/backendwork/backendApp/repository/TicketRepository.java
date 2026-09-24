@@ -10,4 +10,6 @@ public interface TicketRepository extends MongoRepository<Ticket, String> {
     List<Ticket> findByCustomerEmail(String customerEmail);
 
     List<Ticket> findByStatus(String status);
+
+    List<Ticket> findByPriority(String priority);
 }
