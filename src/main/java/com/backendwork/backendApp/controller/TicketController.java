@@ -6,6 +6,8 @@ import com.backendwork.backendApp.entity.Ticket;
 import com.backendwork.backendApp.services.TicketService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,8 +39,23 @@ public class TicketController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Ticket>> getAllTickets() {
-        List<Ticket> tickets = ticketService.getAllTickets();
+    public ResponseEntity<Page<Ticket>> getAllTickets(Pageable pageable) {
+        Page<Ticket> tickets = ticketService.getTickets(pageable);
+        return ResponseEntity.ok(tickets);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Ticket>> searchTickets(@RequestParam String customerEmail) {
+
+        List<Ticket> tickets = ticketService.searchByCustomerEmail(customerEmail);
+
+        return ResponseEntity.ok(tickets);
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<List<Ticket>> getTicketsByStatus(@RequestParam String status) {
+        List<Ticket> tickets = ticketService.getTicketByStatus(status);
+
         return ResponseEntity.ok(tickets);
     }
 

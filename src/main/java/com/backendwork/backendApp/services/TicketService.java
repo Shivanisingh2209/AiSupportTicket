@@ -5,6 +5,8 @@ import com.backendwork.backendApp.exception.TicketNotFoundException;
 import com.backendwork.backendApp.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -13,6 +15,18 @@ public class TicketService {
 
     @Autowired
     private TicketRepository ticketRepository;
+
+    public Page<Ticket> getTickets(Pageable pageable) {
+        return ticketRepository.findAll(pageable);
+    }
+
+    public List<Ticket> searchByCustomerEmail(String customerEmail) {
+        return ticketRepository.findByCustomerEmail(customerEmail);
+    }
+
+    public List<Ticket> getTicketByStatus(String status) {
+        return ticketRepository.findByStatus(status);
+    }
 
     public Ticket createTicket(Ticket ticket) {
         if (ticket.getStatus() == null) {
@@ -29,6 +43,7 @@ public class TicketService {
 
         return ticketRepository.save(ticket);
     }
+
 
     public List<Ticket> getAllTickets() {
         return ticketRepository.findAll();
