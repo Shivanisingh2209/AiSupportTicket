@@ -24,4 +24,8 @@ public class AgentService {
         return agentRepo.findAll();
     }
 
+    public boolean agentExists(String agentId) {
+        return agentRepo.existsById(agentId);
+    }
+
 }

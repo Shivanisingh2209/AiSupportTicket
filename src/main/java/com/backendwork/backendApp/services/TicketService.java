@@ -1,6 +1,8 @@
 package com.backendwork.backendApp.services;
 
 import com.backendwork.backendApp.entity.Ticket;
+import com.backendwork.backendApp.exception.AgentNotFoundException;
+import com.backendwork.backendApp.exception.CustomerNotFoundException;
 import com.backendwork.backendApp.exception.TicketNotFoundException;
 import com.backendwork.backendApp.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,12 @@ public class TicketService {
 
     @Autowired
     private TicketRepository ticketRepository;
+
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    private AgentService agentService;
 
     public Page<Ticket> getTickets(Pageable pageable) {
         return ticketRepository.findAll(pageable);
@@ -85,8 +93,28 @@ public class TicketService {
             existingTicket.setCustomerId(updatedTicket.getCustomerId());
         }
 
+        if (updatedTicket.getCustomerId() != null) {
+
+            if (!customerService.customerExists(updatedTicket.getCustomerId())) {
+                throw new CustomerNotFoundException(
+                        "Customer not found with id: "
+                                + updatedTicket.getCustomerId()
+                );
+            }
+        }
+
         if (updatedTicket.getAgentId() != null) {
             existingTicket.setAgentId(updatedTicket.getAgentId());
+        }
+
+        if (updatedTicket.getAgentId() != null) {
+
+            if (!agentService.agentExists(updatedTicket.getAgentId())) {
+                throw new AgentNotFoundException(
+                        "Agent not found with id: "
+                                + updatedTicket.getAgentId()
+                );
+            }
         }
 
         if (updatedTicket.getCustomerName() != null) {

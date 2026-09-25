@@ -23,4 +23,8 @@ public class CustomerService {
         return customerRepository.findAll();
     }
 
+    public boolean customerExists(String customerId) {
+        return customerRepository.existsById(customerId);
+    }
+
 }

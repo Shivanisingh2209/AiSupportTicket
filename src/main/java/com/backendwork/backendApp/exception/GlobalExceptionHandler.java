@@ -51,4 +51,34 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
+
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCustomerNotFound(
+            CustomerNotFoundException exception
+    ) {
+        Map<String, Object> response = Map.of(
+                "status", 404,
+                "error", "Customer Not Found",
+                "message", exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(response);
+    }
+
+    @ExceptionHandler(AgentNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleAgentNotFound(
+            AgentNotFoundException exception
+    ) {
+        Map<String, Object> response = Map.of(
+                "status", 404,
+                "error", "Agent Not Found",
+                "message", exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(response);
+    }
 }
