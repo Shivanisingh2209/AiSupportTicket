@@ -8,6 +8,25 @@ public class UpdateTicketRequest {
     private String description;
     private String status;
     private String priority;
+    private String customerId;
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
+
+    public String getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(String agentId) {
+        this.agentId = agentId;
+    }
+
+    private String agentId;
 
     public String getCustomerName() {
         return customerName;

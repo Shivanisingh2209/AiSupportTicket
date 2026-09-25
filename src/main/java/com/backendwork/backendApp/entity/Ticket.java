@@ -18,6 +18,25 @@ public class Ticket {
     private String status;
     private String priority;
     private Date createdAt;
+    private String customerId;
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
+
+    public String getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(String agentId) {
+        this.agentId = agentId;
+    }
+
+    private String agentId;
 
     public String getId() {
         return id;

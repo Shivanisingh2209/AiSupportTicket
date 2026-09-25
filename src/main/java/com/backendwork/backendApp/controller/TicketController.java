@@ -91,8 +91,10 @@ public class TicketController {
     ) {
         Ticket ticket = new Ticket();
 
+        ticket.setCustomerId(request.getCustomerId());
         ticket.setCustomerName(request.getCustomerName());
         ticket.setCustomerEmail(request.getCustomerEmail());
+        ticket.setAgentId(request.getAgentId());
         ticket.setStatus(request.getStatus());
         ticket.setSubject(request.getSubject());
         ticket.setPriority(request.getPriority());

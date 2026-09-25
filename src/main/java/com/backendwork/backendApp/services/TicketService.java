@@ -81,6 +81,14 @@ public class TicketService {
             return null;
         }
 
+        if (updatedTicket.getCustomerId() != null) {
+            existingTicket.setCustomerId(updatedTicket.getCustomerId());
+        }
+
+        if (updatedTicket.getAgentId() != null) {
+            existingTicket.setAgentId(updatedTicket.getAgentId());
+        }
+
         if (updatedTicket.getCustomerName() != null) {
             existingTicket.setCustomerName(updatedTicket.getCustomerName());
         }
