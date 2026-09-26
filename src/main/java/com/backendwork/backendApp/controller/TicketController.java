@@ -25,6 +25,8 @@ public class TicketController {
     public ResponseEntity<Ticket> createTicket(@Valid @RequestBody CreateTicketRequest request) {
         Ticket ticket = new Ticket();
 
+        ticket.setCustomerId(request.getCustomerId());
+        ticket.setAgentId(request.getAgentId());
         ticket.setCustomerName(request.getCustomerName());
         ticket.setCustomerEmail(request.getCustomerEmail());
         ticket.setDescription(request.getDescription());
