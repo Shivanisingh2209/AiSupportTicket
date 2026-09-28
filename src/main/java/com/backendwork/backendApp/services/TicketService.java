@@ -3,6 +3,7 @@ package com.backendwork.backendApp.services;
 import com.backendwork.backendApp.entity.Ticket;
 import com.backendwork.backendApp.exception.AgentNotFoundException;
 import com.backendwork.backendApp.exception.CustomerNotFoundException;
+import com.backendwork.backendApp.exception.ResourceNotFoundException;
 import com.backendwork.backendApp.exception.TicketNotFoundException;
 import com.backendwork.backendApp.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +66,7 @@ public class TicketService {
         return ticketRepository
                 .findById(id)
                 .orElseThrow(() ->
-                        new TicketNotFoundException(
+                        new ResourceNotFoundException(
                                 "Ticket not found with id :" + id
                         ));
     }

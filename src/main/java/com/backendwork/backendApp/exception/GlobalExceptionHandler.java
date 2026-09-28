@@ -2,24 +2,24 @@ package com.backendwork.backendApp.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(TicketNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleTicketNotFound(
-            TicketNotFoundException exception
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFound(
+            ResourceNotFoundException ex
     ) {
+
         Map<String, Object> response = Map.of(
                 "status", 404,
-                "error", "Not Found",
-                "message", exception.getMessage()
+                "message", ex.getMessage(),
+                "timestamp", LocalDateTime.now()
         );
 
         return ResponseEntity
@@ -27,58 +27,19 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(
-            MethodArgumentNotValidException exception
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, Object>> handleRuntimeException(
+            RuntimeException ex
     ) {
-        Map<String, Object> errors = new HashMap<>();
-
-        exception.getBindingResult()
-                .getFieldErrors()
-                .forEach(error ->
-                        errors.put(
-                                error.getField(),
-                                error.getDefaultMessage()
-                        ));
 
         Map<String, Object> response = Map.of(
                 "status", 400,
-                "error", "Validation Failed",
-                "errors", errors
+                "message", ex.getMessage(),
+                "timestamp", LocalDateTime.now()
         );
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(response);
-    }
-
-    @ExceptionHandler(CustomerNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleCustomerNotFound(
-            CustomerNotFoundException exception
-    ) {
-        Map<String, Object> response = Map.of(
-                "status", 404,
-                "error", "Customer Not Found",
-                "message", exception.getMessage()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(response);
-    }
-
-    @ExceptionHandler(AgentNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleAgentNotFound(
-            AgentNotFoundException exception
-    ) {
-        Map<String, Object> response = Map.of(
-                "status", 404,
-                "error", "Agent Not Found",
-                "message", exception.getMessage()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
                 .body(response);
     }
 }
