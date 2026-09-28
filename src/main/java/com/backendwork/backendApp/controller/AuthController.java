@@ -1,6 +1,7 @@
 package com.backendwork.backendApp.controller;
 
 
+import com.backendwork.backendApp.dto.LoginRequest;
 import com.backendwork.backendApp.dto.RegisterRequest;
 import com.backendwork.backendApp.entity.User;
 import com.backendwork.backendApp.services.UserService;
@@ -26,5 +27,15 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(user);
+    }
+
+    @PostMapping("/login")
+    public  ResponseEntity<String> login(@RequestBody LoginRequest request) {
+        String token = userService.login(
+                request.getEmail(),
+                request.getPassword()
+        );
+
+        return ResponseEntity.ok(token);
     }
 }
