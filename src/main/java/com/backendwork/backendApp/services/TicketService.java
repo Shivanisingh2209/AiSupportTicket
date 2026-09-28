@@ -1,5 +1,7 @@
 package com.backendwork.backendApp.services;
 
+import com.backendwork.backendApp.dto.TicketMapper;
+import com.backendwork.backendApp.dto.TicketResponse;
 import com.backendwork.backendApp.entity.Ticket;
 import com.backendwork.backendApp.exception.AgentNotFoundException;
 import com.backendwork.backendApp.exception.CustomerNotFoundException;
@@ -25,8 +27,10 @@ public class TicketService {
     @Autowired
     private AgentService agentService;
 
-    public Page<Ticket> getTickets(Pageable pageable) {
-        return ticketRepository.findAll(pageable);
+    public Page<TicketResponse> getTickets(Pageable pageable) {
+        return ticketRepository
+                .findAll(pageable)
+                .map(TicketMapper::toResponse);
     }
 
     public List<Ticket> searchByCustomerEmail(String customerEmail) {

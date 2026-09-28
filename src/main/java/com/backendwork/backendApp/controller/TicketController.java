@@ -1,6 +1,8 @@
 package com.backendwork.backendApp.controller;
 
 import com.backendwork.backendApp.dto.CreateTicketRequest;
+import com.backendwork.backendApp.dto.TicketMapper;
+import com.backendwork.backendApp.dto.TicketResponse;
 import com.backendwork.backendApp.dto.UpdateTicketRequest;
 import com.backendwork.backendApp.entity.Ticket;
 import com.backendwork.backendApp.services.TicketService;
@@ -22,7 +24,10 @@ public class TicketController {
     private TicketService ticketService;
 
     @PostMapping
-    public ResponseEntity<Ticket> createTicket(@Valid @RequestBody CreateTicketRequest request) {
+    public ResponseEntity<TicketResponse> createTicket(
+            @Valid @RequestBody CreateTicketRequest request
+    ) {
+
         Ticket ticket = new Ticket();
 
         ticket.setCustomerId(request.getCustomerId());
@@ -35,14 +40,17 @@ public class TicketController {
 
         Ticket createdTicket = ticketService.createTicket(ticket);
 
+        TicketResponse response =
+                TicketMapper.toResponse(createdTicket);
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(createdTicket);
+                .body(response);
     }
 
     @GetMapping
-    public ResponseEntity<Page<Ticket>> getAllTickets(Pageable pageable) {
-        Page<Ticket> tickets = ticketService.getTickets(pageable);
+    public ResponseEntity<Page<TicketResponse>> getAllTickets(Pageable pageable) {
+        Page<TicketResponse> tickets = ticketService.getTickets(pageable);
         return ResponseEntity.ok(tickets);
     }
 
@@ -73,10 +81,16 @@ public class TicketController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ticket> getTicketById(@PathVariable String id) {
+    public ResponseEntity<TicketResponse> getTicketById(
+            @PathVariable String id
+    ) {
+
         Ticket ticket = ticketService.getTicketById(id);
 
-        return ResponseEntity.ok(ticket);
+        TicketResponse response =
+                TicketMapper.toResponse(ticket);
+
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
@@ -87,7 +101,7 @@ public class TicketController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Ticket> updateTicket(
+    public ResponseEntity<TicketResponse> updateTicket(
             @PathVariable String id,
             @RequestBody UpdateTicketRequest request
     ) {
@@ -107,6 +121,9 @@ public class TicketController {
         if (updatedTicket == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(updatedTicket);
+        TicketResponse response =
+                TicketMapper.toResponse(updatedTicket);
+
+        return ResponseEntity.ok(response);
     }
 }
