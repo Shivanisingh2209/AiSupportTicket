@@ -3,6 +3,7 @@ package com.backendwork.backendApp.services;
 import com.backendwork.backendApp.dto.TicketMapper;
 import com.backendwork.backendApp.dto.TicketResponse;
 import com.backendwork.backendApp.entity.Ticket;
+import com.backendwork.backendApp.entity.TicketStatus;
 import com.backendwork.backendApp.exception.AgentNotFoundException;
 import com.backendwork.backendApp.exception.CustomerNotFoundException;
 import com.backendwork.backendApp.exception.ResourceNotFoundException;
@@ -160,7 +161,22 @@ public class TicketService {
         }
 
         if (updatedTicket.getStatus() != null) {
-            existingTicket.setStatus(updatedTicket.getStatus());
+
+            try {
+                TicketStatus.valueOf(
+                        updatedTicket.getStatus().toUpperCase()
+                );
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "Invalid ticket status: "
+                                + updatedTicket.getStatus()
+                                + ". Allowed values: OPEN, IN_PROGRESS, RESOLVED, CLOSED"
+                );
+            }
+
+            existingTicket.setStatus(
+                    updatedTicket.getStatus().toUpperCase()
+            );
         }
 
         if (updatedTicket.getPriority() != null) {
