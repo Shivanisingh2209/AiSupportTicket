@@ -28,4 +28,14 @@ public class AgentService {
         return agentRepo.existsById(agentId);
     }
 
+    public Agent getAgentByEmail(String email) {
+
+        return agentRepo.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Agent not found with email: " + email
+                        )
+                );
+    }
+
 }

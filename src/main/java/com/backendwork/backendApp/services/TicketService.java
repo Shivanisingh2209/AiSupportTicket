@@ -11,6 +11,9 @@ import com.backendwork.backendApp.exception.TicketNotFoundException;
 import com.backendwork.backendApp.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.backendwork.backendApp.entity.Agent;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -161,6 +164,26 @@ public class TicketService {
         }
 
         if (updatedTicket.getStatus() != null) {
+
+            Authentication authentication =
+                    SecurityContextHolder.getContext().getAuthentication();
+
+            String loggedInEmail = authentication.getName();
+
+            Agent loggedInAgent =
+                    agentService.getAgentByEmail(loggedInEmail);
+
+            if (existingTicket.getAgentId() == null) {
+                throw new IllegalStateException(
+                        "Ticket is not assigned to any agent"
+                );
+            }
+
+            if (!existingTicket.getAgentId().equals(loggedInAgent.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "You are not authorized to update this ticket"
+                );
+            }
 
             try {
                 TicketStatus.valueOf(
