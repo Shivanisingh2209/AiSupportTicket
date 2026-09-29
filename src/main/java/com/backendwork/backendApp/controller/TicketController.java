@@ -5,13 +5,17 @@ import com.backendwork.backendApp.dto.TicketMapper;
 import com.backendwork.backendApp.dto.TicketResponse;
 import com.backendwork.backendApp.dto.UpdateTicketRequest;
 import com.backendwork.backendApp.entity.Ticket;
+import com.backendwork.backendApp.entity.User;
 import com.backendwork.backendApp.services.TicketService;
+import com.backendwork.backendApp.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +26,9 @@ public class TicketController {
 
     @Autowired
     private TicketService ticketService;
+
+    @Autowired
+    private UserService userService;
 
     @PostMapping
     public ResponseEntity<TicketResponse> createTicket(
@@ -80,6 +87,44 @@ public class TicketController {
         return ResponseEntity.ok(tickets);
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<List<TicketResponse>> getMyTickets() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String email = authentication.getName();
+
+        System.out.println("========== MY TICKETS ==========");
+        System.out.println("Logged in email: " + email);
+
+        User user = userService.getUserByEmail(email);
+
+        System.out.println("User ID: " + user.getId());
+
+        List<Ticket> tickets =
+                ticketService.getMyTickets(user.getId());
+
+        System.out.println("Tickets found: " + tickets.size());
+
+        for (Ticket ticket : tickets) {
+            System.out.println(
+                    "Ticket ID: " + ticket.getId()
+                            + " | Ticket Customer ID: "
+                            + ticket.getCustomerId()
+            );
+        }
+
+        List<TicketResponse> response =
+                tickets.stream()
+                        .map(TicketMapper::toResponse)
+                        .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponse> getTicketById(
             @PathVariable String id
@@ -125,5 +170,14 @@ public class TicketController {
                 TicketMapper.toResponse(updatedTicket);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/agent/{agentId}")
+    public ResponseEntity<List<Ticket>> getTicketsByAgent(
+            @PathVariable String agentId
+    ) {
+        return ResponseEntity.ok(
+                ticketService.getTicketsByAgent(agentId)
+        );
     }
 }

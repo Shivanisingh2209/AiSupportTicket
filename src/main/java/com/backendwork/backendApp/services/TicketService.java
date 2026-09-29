@@ -33,6 +33,10 @@ public class TicketService {
                 .map(TicketMapper::toResponse);
     }
 
+    public List<Ticket> getTicketsByAgent(String agentId) {
+        return ticketRepository.findByAgentId(agentId);
+    }
+
     public List<Ticket> searchByCustomerEmail(String customerEmail) {
         return ticketRepository.findByCustomerEmail(customerEmail);
     }
@@ -75,6 +79,11 @@ public class TicketService {
                         ));
     }
 
+    public List<Ticket> getMyTickets(String customerId) {
+
+        return ticketRepository.findByCustomerId(customerId);
+    }
+
     public void deleteTicketById(String id) {
 
         if (!ticketRepository.existsById(id)) {
@@ -88,15 +97,19 @@ public class TicketService {
 
     public Ticket updateTicket(String id, Ticket updatedTicket) {
 
-        Ticket existingTicket = ticketRepository.findById(id).orElse(null);
+        Ticket existingTicket = ticketRepository.findById(id).orElseThrow(() ->
+                new TicketNotFoundException(
+                        "Ticket not found with id: " + id
+                )
+        );
 
         if (existingTicket == null) {
             return null;
         }
 
-        if (updatedTicket.getCustomerId() != null) {
-            existingTicket.setCustomerId(updatedTicket.getCustomerId());
-        }
+//        if (updatedTicket.getCustomerId() != null) {
+//            existingTicket.setCustomerId(updatedTicket.getCustomerId());
+//        }
 
         if (updatedTicket.getCustomerId() != null) {
 
@@ -106,11 +119,15 @@ public class TicketService {
                                 + updatedTicket.getCustomerId()
                 );
             }
+
+            existingTicket.setCustomerId(
+                    updatedTicket.getCustomerId()
+            );
         }
 
-        if (updatedTicket.getAgentId() != null) {
-            existingTicket.setAgentId(updatedTicket.getAgentId());
-        }
+//        if (updatedTicket.getAgentId() != null) {
+//            existingTicket.setAgentId(updatedTicket.getAgentId());
+//        }
 
         if (updatedTicket.getAgentId() != null) {
 
@@ -120,6 +137,10 @@ public class TicketService {
                                 + updatedTicket.getAgentId()
                 );
             }
+
+            existingTicket.setAgentId(
+                    updatedTicket.getAgentId()
+            );
         }
 
         if (updatedTicket.getCustomerName() != null) {

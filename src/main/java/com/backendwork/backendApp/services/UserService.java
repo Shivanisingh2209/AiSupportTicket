@@ -3,7 +3,6 @@ package com.backendwork.backendApp.services;
 import com.backendwork.backendApp.dto.RegisterRequest;
 import com.backendwork.backendApp.entity.User;
 import com.backendwork.backendApp.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -61,5 +60,13 @@ public class UserService {
                 user.getEmail(),
                 user.getRole()
         );
+    }
+
+    public User getUserByEmail(String email) {
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
     }
 }

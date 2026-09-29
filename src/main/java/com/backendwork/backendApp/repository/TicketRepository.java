@@ -12,4 +12,9 @@ public interface TicketRepository extends MongoRepository<Ticket, String> {
     List<Ticket> findByStatus(String status);
 
     List<Ticket> findByPriority(String priority);
+
+    List<Ticket> findByCustomerId(String customerId);
+
+    List<Ticket> findByAgentId(String agentId);
+
 }
