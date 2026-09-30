@@ -1,0 +1,160 @@
+package com.backendwork.backendApp.controller;
+
+import com.backendwork.backendApp.dto.CreateTicketMessageRequest;
+import com.backendwork.backendApp.entity.Agent;
+import com.backendwork.backendApp.entity.Ticket;
+import com.backendwork.backendApp.entity.TicketMessage;
+import com.backendwork.backendApp.entity.User;
+import com.backendwork.backendApp.services.AgentService;
+import com.backendwork.backendApp.services.TicketMessageService;
+import com.backendwork.backendApp.services.TicketService;
+import com.backendwork.backendApp.services.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/tickets")
+public class TicketMessageController {
+
+    @Autowired
+    private TicketMessageService ticketMessageService;
+
+    @Autowired
+    private TicketService ticketService;
+
+    @Autowired
+    private AgentService agentService;
+
+    @Autowired
+    private UserService userService;
+
+
+    @PostMapping("/{ticketId}/messages")
+    public ResponseEntity<TicketMessage> sendMessage(
+            @PathVariable String ticketId,
+            @RequestBody CreateTicketMessageRequest request
+    ) {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String email = authentication.getName();
+
+        System.out.println("========== SEND MESSAGE ==========");
+        System.out.println("Logged in email: " + email);
+        System.out.println("Authorities: " + authentication.getAuthorities());
+
+        // Check ticket exists
+        Ticket ticket = ticketService.getTicketById(ticketId);
+
+
+        // ==========================================
+        // AGENT
+        // ==========================================
+
+        boolean isAgent =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(
+                                authority ->
+                                        authority.getAuthority()
+                                                .equals("ROLE_AGENT")
+                        );
+
+        if (isAgent) {
+
+            Agent agent = agentService.getAgentByEmail(email);
+
+            System.out.println("Logged in as AGENT");
+            System.out.println("Agent ID: " + agent.getId());
+            System.out.println("Ticket Agent ID: " + ticket.getAgentId());
+
+            // Ticket must be assigned
+            if (ticket.getAgentId() == null) {
+
+                throw new AccessDeniedException(
+                        "Ticket is not assigned to any agent"
+                );
+            }
+
+            // Only assigned agent can reply
+            if (!ticket.getAgentId().equals(agent.getId())) {
+
+                throw new AccessDeniedException(
+                        "You are not authorized to reply to this ticket"
+                );
+            }
+
+            TicketMessage message =
+                    ticketMessageService.createMessage(
+                            ticketId,
+                            agent.getId(),
+                            "AGENT",
+                            request.getMessage()
+                    );
+
+            return ResponseEntity.ok(message);
+        }
+
+
+        // ==========================================
+        // CUSTOMER
+        // ==========================================
+
+        User user = userService.getUserByEmail(email);
+
+        System.out.println("Logged in as CUSTOMER");
+        System.out.println("Customer ID: " + user.getId());
+        System.out.println("Ticket Customer ID: " + ticket.getCustomerId());
+
+        // Ticket must have customer
+        if (ticket.getCustomerId() == null) {
+
+            throw new AccessDeniedException(
+                    "Ticket has no customer assigned"
+            );
+        }
+
+        // Customer can reply only to own ticket
+        if (!ticket.getCustomerId().equals(user.getId())) {
+
+            throw new AccessDeniedException(
+                    "You are not authorized to reply to this ticket"
+            );
+        }
+
+        TicketMessage message =
+                ticketMessageService.createMessage(
+                        ticketId,
+                        user.getId(),
+                        "CUSTOMER",
+                        request.getMessage()
+                );
+
+        return ResponseEntity.ok(message);
+    }
+
+    @GetMapping("/{ticketId}/messages")
+    public ResponseEntity<List<TicketMessage>> getMessages(
+            @PathVariable String ticketId
+    ) {
+
+        // Make sure ticket exists
+        ticketService.getTicketById(ticketId);
+
+        List<TicketMessage> messages =
+                ticketMessageService
+                        .getMessagesByTicketId(ticketId);
+
+        return ResponseEntity.ok(messages);
+    }
+}

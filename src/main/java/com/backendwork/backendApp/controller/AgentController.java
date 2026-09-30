@@ -1,5 +1,6 @@
 package com.backendwork.backendApp.controller;
 
+import com.backendwork.backendApp.dto.LoginRequest;
 import com.backendwork.backendApp.entity.Agent;
 import com.backendwork.backendApp.services.AgentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,5 +37,18 @@ public class AgentController {
                 agentService.getAllAgents();
 
         return ResponseEntity.ok(agents);
+    }
+
+    @PutMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String email,
+            @RequestParam String newPassword
+    ) {
+
+        agentService.resetPassword(email, newPassword);
+
+        return ResponseEntity.ok(
+                "Agent password updated successfully"
+        );
     }
 }
