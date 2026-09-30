@@ -129,24 +129,33 @@ public class AgentService {
             );
         }
 
-        Agent selectedAgent = availableAgents.get(0);
+        List<String> activeStatuses =
+                List.of("OPEN", "IN_PROGRESS");
 
         return availableAgents.stream()
                 .min((agent1, agent2) -> {
 
                     long count1 =
-                            ticketRepository.countByAgentId(
-                                    agent1.getId()
-                            );
+                            ticketRepository
+                                    .countByAgentIdAndStatusIn(
+                                            agent1.getId(),
+                                            activeStatuses
+                                    );
 
                     long count2 =
-                            ticketRepository.countByAgentId(
-                                    agent2.getId()
-                            );
+                            ticketRepository
+                                    .countByAgentIdAndStatusIn(
+                                            agent2.getId(),
+                                            activeStatuses
+                                    );
 
                     return Long.compare(count1, count2);
                 })
-                .orElse(selectedAgent);
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "No available agent found"
+                        )
+                );
     }
 
 }
