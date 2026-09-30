@@ -5,6 +5,7 @@ import com.backendwork.backendApp.repository.AgentRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.backendwork.backendApp.repository.TicketRepository;
 import java.util.List;
 
 @Service
@@ -18,6 +19,9 @@ public class AgentService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private TicketRepository ticketRepository;
 
     public Agent createAgent(Agent agent) {
 
@@ -112,6 +116,37 @@ public class AgentService {
         return agentRepo.findFirstByStatus("AVAILABLE")
                 .orElseThrow(() ->
                         new RuntimeException("No available agent found"));
+    }
+
+    public Agent getLeastLoadedAvailableAgent() {
+
+        List<Agent> availableAgents =
+                agentRepo.findByStatus("AVAILABLE");
+
+        if (availableAgents.isEmpty()) {
+            throw new RuntimeException(
+                    "No available agent found"
+            );
+        }
+
+        Agent selectedAgent = availableAgents.get(0);
+
+        return availableAgents.stream()
+                .min((agent1, agent2) -> {
+
+                    long count1 =
+                            ticketRepository.countByAgentId(
+                                    agent1.getId()
+                            );
+
+                    long count2 =
+                            ticketRepository.countByAgentId(
+                                    agent2.getId()
+                            );
+
+                    return Long.compare(count1, count2);
+                })
+                .orElse(selectedAgent);
     }
 
 }

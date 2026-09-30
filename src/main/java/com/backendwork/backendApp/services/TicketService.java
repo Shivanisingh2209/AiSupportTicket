@@ -349,7 +349,8 @@ public class TicketService {
             );
         }
 
-        Agent agent = agentService.getAvailableAgent();
+        Agent agent =
+                agentService.getLeastLoadedAvailableAgent();
 
         ticket.setAgentId(agent.getId());
 
