@@ -69,4 +69,20 @@ public class UserService {
                         new RuntimeException("User not found")
                 );
     }
+
+    public void resetPassword(String email, String newPassword) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "User not found with email: " + email
+                        )
+                );
+
+        user.setPassword(
+                passwordEncoder.encode(newPassword)
+        );
+
+        userRepository.save(user);
+    }
 }

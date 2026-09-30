@@ -195,4 +195,24 @@ public class TicketController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{id}/close")
+    public ResponseEntity<TicketResponse> closeTicket(@PathVariable String id) {
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String customerEmail = authentication.getName();
+
+        Ticket closedTicket =
+                ticketService.closeTicketByCustomer(
+                        id,
+                        customerEmail
+                );
+
+        TicketResponse response = TicketMapper.toResponse(closedTicket);
+
+        return ResponseEntity.ok(response);
+    }
 }

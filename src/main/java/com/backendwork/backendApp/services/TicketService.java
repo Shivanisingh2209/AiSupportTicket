@@ -4,6 +4,7 @@ import com.backendwork.backendApp.dto.TicketMapper;
 import com.backendwork.backendApp.dto.TicketResponse;
 import com.backendwork.backendApp.entity.Ticket;
 import com.backendwork.backendApp.entity.TicketStatus;
+import com.backendwork.backendApp.entity.User;
 import com.backendwork.backendApp.exception.AgentNotFoundException;
 import com.backendwork.backendApp.exception.CustomerNotFoundException;
 import com.backendwork.backendApp.exception.ResourceNotFoundException;
@@ -31,6 +32,9 @@ public class TicketService {
     @Autowired
     private AgentService agentService;
 
+    @Autowired
+    private UserService userService;
+
     public Page<TicketResponse> getTickets(Pageable pageable) {
         return ticketRepository
                 .findAll(pageable)
@@ -54,6 +58,19 @@ public class TicketService {
     }
 
     public Ticket createTicket(Ticket ticket) {
+
+        if (ticket.getCustomerEmail() != null) {
+
+            User customer =
+                    userService.getUserByEmail(
+                            ticket.getCustomerEmail()
+                    );
+
+            ticket.setCustomerId(
+                    customer.getId()
+            );
+        }
+
         if (ticket.getStatus() == null) {
             ticket.setStatus("OPEN");
         }
@@ -261,6 +278,29 @@ public class TicketService {
     }
 
     public Ticket saveTicket(Ticket ticket) {
+        return ticketRepository.save(ticket);
+    }
+
+    public Ticket closeTicketByCustomer(String ticketId, String customerEmail) {
+
+        Ticket ticket = getTicketById(ticketId);
+
+        User customer = userService.getUserByEmail(customerEmail);
+
+        if (ticket.getCustomerId() == null) {
+            throw new IllegalStateException("Ticket has no customer assigned");
+        }
+
+        if(!ticket.getCustomerId().equals(customer.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to close this ticket");
+        }
+
+        if (!"RESOLVED".equalsIgnoreCase(ticket.getStatus())) {
+            throw new IllegalStateException("Only Resolved tickets can be closed");
+        }
+
+        ticket.setStatus("CLOSED");
+
         return ticketRepository.save(ticket);
     }
 }

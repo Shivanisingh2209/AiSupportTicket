@@ -56,4 +56,20 @@ public class AuthController {
 
         return ResponseEntity.ok(token);
     }
+
+    @PutMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String email,
+            @RequestParam String newPassword
+    ) {
+
+        userService.resetPassword(
+                email,
+                newPassword
+        );
+
+        return ResponseEntity.ok(
+                "User password updated successfully"
+        );
+    }
 }
