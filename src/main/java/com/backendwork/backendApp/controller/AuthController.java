@@ -72,4 +72,15 @@ public class AuthController {
                 "User password updated successfully"
         );
     }
+
+    @PostMapping("/admin/register")
+    public ResponseEntity<User> registerAdmin(
+            @RequestBody RegisterRequest request
+    ) {
+        User admin = userService.createAdmin(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(admin);
+    }
 }

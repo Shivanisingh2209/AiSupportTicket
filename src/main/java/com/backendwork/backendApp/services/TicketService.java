@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.util.*;
 
 import java.util.List;
 
@@ -317,5 +318,21 @@ public class TicketService {
                 agentService.getAgentByEmail(loggedInEmail);
 
         return ticketRepository.findByAgentId(agent.getId());
+    }
+
+    public Map<String, Long> getTicketStatistics() {
+        Map<String, Long> stats = new LinkedHashMap<>();
+
+        stats.put("total", ticketRepository.count());
+
+        stats.put("open", ticketRepository.countByStatus("OPEN"));
+
+        stats.put("inProgress", ticketRepository.countByStatus("IN_PROGRESS"));
+
+        stats.put("resolved", ticketRepository.countByStatus("RESOLVED"));
+
+        stats.put("closed", ticketRepository.countByStatus("CLOSED"));
+
+        return stats;
     }
 }

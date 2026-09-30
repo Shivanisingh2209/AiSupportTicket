@@ -85,4 +85,24 @@ public class UserService {
 
         userRepository.save(user);
     }
+
+    public User createAdmin(RegisterRequest request) {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already registered");
+        }
+
+        User admin = new User();
+
+        admin.setName(request.getName());
+        admin.setEmail(request.getEmail());
+
+        admin.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
+
+        admin.setRole("ADMIN");
+
+        return userRepository.save(admin);
+    }
 }

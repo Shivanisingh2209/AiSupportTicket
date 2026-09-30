@@ -15,7 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/tickets")
@@ -223,5 +223,12 @@ public class TicketController {
                 ticketService.getMyAssignedTickets();
 
         return ResponseEntity.ok(tickets);
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> getTicketStatistics() {
+        return ResponseEntity.ok(
+                ticketService.getTicketStatistics()
+        );
     }
 }

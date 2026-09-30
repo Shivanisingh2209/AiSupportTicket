@@ -17,4 +17,6 @@ public interface TicketRepository extends MongoRepository<Ticket, String> {
 
     List<Ticket> findByAgentId(String agentId);
 
+    long countByStatus(String status);
+
 }

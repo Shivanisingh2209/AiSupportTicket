@@ -37,7 +37,8 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/agents/reset-password"
+                                "/agents/reset-password",
+                                "/tickets/stats"
                         ).permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/tickets/**")
                         .hasRole("ADMIN")
