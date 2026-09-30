@@ -51,4 +51,18 @@ public class AgentController {
                 "Agent password updated successfully"
         );
     }
+
+    @PatchMapping("/{agentId}/status")
+    public ResponseEntity<Agent> updateAgentStatus(
+            @PathVariable String agentId,
+            @RequestParam String status
+    ) {
+        Agent agent =
+                agentService.updateAgentStatus(
+                        agentId,
+                        status
+                );
+
+        return ResponseEntity.ok(agent);
+    }
 }

@@ -95,4 +95,17 @@ public class AgentService {
         agentRepo.save(agent);
     }
 
+    public Agent updateAgentStatus(String agentId, String status) {
+
+        Agent agent = agentRepo.findById(agentId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Agent not found with id: " + agentId
+                        ));
+
+        agent.setStatus(status.toUpperCase());
+
+        return agentRepo.save(agent);
+    }
+
 }
