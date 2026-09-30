@@ -15,7 +15,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.List;
 
@@ -53,13 +52,8 @@ public class TicketMessageController {
         System.out.println("Logged in email: " + email);
         System.out.println("Authorities: " + authentication.getAuthorities());
 
-        // Check ticket exists
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-
-        // ==========================================
-        // AGENT
-        // ==========================================
 
         boolean isAgent =
                 authentication.getAuthorities()
@@ -78,7 +72,6 @@ public class TicketMessageController {
             System.out.println("Agent ID: " + agent.getId());
             System.out.println("Ticket Agent ID: " + ticket.getAgentId());
 
-            // Ticket must be assigned
             if (ticket.getAgentId() == null) {
 
                 throw new AccessDeniedException(
@@ -86,7 +79,6 @@ public class TicketMessageController {
                 );
             }
 
-            // Only assigned agent can reply
             if (!ticket.getAgentId().equals(agent.getId())) {
 
                 throw new AccessDeniedException(
@@ -102,13 +94,13 @@ public class TicketMessageController {
                             request.getMessage()
                     );
 
+            if ("OPEN".equalsIgnoreCase(ticket.getStatus())) {
+                ticket.setStatus("IN_PROGRESS");
+                ticketService.saveTicket(ticket);
+            }
+
             return ResponseEntity.ok(message);
         }
-
-
-        // ==========================================
-        // CUSTOMER
-        // ==========================================
 
         User user = userService.getUserByEmail(email);
 
@@ -116,7 +108,6 @@ public class TicketMessageController {
         System.out.println("Customer ID: " + user.getId());
         System.out.println("Ticket Customer ID: " + ticket.getCustomerId());
 
-        // Ticket must have customer
         if (ticket.getCustomerId() == null) {
 
             throw new AccessDeniedException(
@@ -124,7 +115,6 @@ public class TicketMessageController {
             );
         }
 
-        // Customer can reply only to own ticket
         if (!ticket.getCustomerId().equals(user.getId())) {
 
             throw new AccessDeniedException(

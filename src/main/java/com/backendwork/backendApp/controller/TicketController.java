@@ -1,9 +1,6 @@
 package com.backendwork.backendApp.controller;
 
-import com.backendwork.backendApp.dto.CreateTicketRequest;
-import com.backendwork.backendApp.dto.TicketMapper;
-import com.backendwork.backendApp.dto.TicketResponse;
-import com.backendwork.backendApp.dto.UpdateTicketRequest;
+import com.backendwork.backendApp.dto.*;
 import com.backendwork.backendApp.entity.Ticket;
 import com.backendwork.backendApp.entity.User;
 import com.backendwork.backendApp.services.TicketService;
@@ -179,5 +176,23 @@ public class TicketController {
         return ResponseEntity.ok(
                 ticketService.getTicketsByAgent(agentId)
         );
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<TicketResponse> updateStatus(
+            @PathVariable String id,
+            @RequestBody UpdateTicketStatusRequest request
+    ) {
+
+        Ticket updatedTicket =
+                ticketService.updateStatus(
+                        id,
+                        request.getStatus()
+                );
+
+        TicketResponse response =
+                TicketMapper.toResponse(updatedTicket);
+
+        return ResponseEntity.ok(response);
     }
 }

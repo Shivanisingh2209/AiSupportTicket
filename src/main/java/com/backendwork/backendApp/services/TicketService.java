@@ -208,4 +208,59 @@ public class TicketService {
 
         return ticketRepository.save(existingTicket);
     }
+
+    public Ticket updateStatus(
+            String ticketId,
+            String status
+    ) {
+
+        Ticket ticket = getTicketById(ticketId);
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String loggedInEmail =
+                authentication.getName();
+
+        Agent loggedInAgent =
+                agentService.getAgentByEmail(loggedInEmail);
+
+        if (ticket.getAgentId() == null) {
+            throw new IllegalStateException(
+                    "Ticket is not assigned to any agent"
+            );
+        }
+
+        if (!ticket.getAgentId().equals(
+                loggedInAgent.getId()
+        )) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not authorized to update this ticket"
+            );
+        }
+
+        try {
+            TicketStatus.valueOf(
+                    status.toUpperCase()
+            );
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "Invalid ticket status: "
+                            + status
+                            + ". Allowed values: OPEN, IN_PROGRESS, RESOLVED, CLOSED"
+            );
+        }
+
+        ticket.setStatus(
+                status.toUpperCase()
+        );
+
+        return ticketRepository.save(ticket);
+    }
+
+    public Ticket saveTicket(Ticket ticket) {
+        return ticketRepository.save(ticket);
+    }
 }
