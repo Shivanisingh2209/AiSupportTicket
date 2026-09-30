@@ -231,4 +231,14 @@ public class TicketController {
                 ticketService.getTicketStatistics()
         );
     }
+
+    @PatchMapping("/{id}/auto-assign")
+    public ResponseEntity<TicketResponse> autoAssignTicket(@PathVariable String id) {
+
+        Ticket ticket = ticketService.autoAssignTicket(id);
+
+        return ResponseEntity.ok(
+                TicketMapper.toResponse(ticket)
+        );
+    }
 }

@@ -335,4 +335,24 @@ public class TicketService {
 
         return stats;
     }
+
+    public Ticket autoAssignTicket(String ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Ticket not found with id: " + ticketId
+                        ));
+
+        if (ticket.getAgentId() != null) {
+            throw new IllegalStateException(
+                    "Ticket is already assigned to an agent"
+            );
+        }
+
+        Agent agent = agentService.getAvailableAgent();
+
+        ticket.setAgentId(agent.getId());
+
+        return ticketRepository.save(ticket);
+    }
 }

@@ -46,6 +46,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/tickets/**")
                         .hasAnyRole("ADMIN", "AGENT")
 
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/tickets/*/auto-assign"
+                        )
+                        .hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
 

@@ -8,4 +8,7 @@ import java.util.Optional;
 public interface AgentRepo extends MongoRepository<Agent, String> {
 
     Optional<Agent> findByEmail(String email);
+
+    Optional<Agent> findFirstByStatus(String status);
+
 }

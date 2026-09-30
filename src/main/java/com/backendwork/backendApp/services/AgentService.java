@@ -108,4 +108,10 @@ public class AgentService {
         return agentRepo.save(agent);
     }
 
+    public Agent getAvailableAgent() {
+        return agentRepo.findFirstByStatus("AVAILABLE")
+                .orElseThrow(() ->
+                        new RuntimeException("No available agent found"));
+    }
+
 }
