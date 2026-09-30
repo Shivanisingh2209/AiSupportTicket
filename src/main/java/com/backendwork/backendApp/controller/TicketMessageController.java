@@ -48,10 +48,6 @@ public class TicketMessageController {
 
         String email = authentication.getName();
 
-        System.out.println("========== SEND MESSAGE ==========");
-        System.out.println("Logged in email: " + email);
-        System.out.println("Authorities: " + authentication.getAuthorities());
-
         Ticket ticket = ticketService.getTicketById(ticketId);
 
 
@@ -103,10 +99,6 @@ public class TicketMessageController {
         }
 
         User user = userService.getUserByEmail(email);
-
-        System.out.println("Logged in as CUSTOMER");
-        System.out.println("Customer ID: " + user.getId());
-        System.out.println("Ticket Customer ID: " + ticket.getCustomerId());
 
         if (ticket.getCustomerId() == null) {
 
