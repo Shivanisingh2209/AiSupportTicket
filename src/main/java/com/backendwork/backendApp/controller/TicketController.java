@@ -215,4 +215,13 @@ public class TicketController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/agent/my")
+    public ResponseEntity<List<Ticket>> getMyAssignedTickets() {
+
+        List<Ticket> tickets =
+                ticketService.getMyAssignedTickets();
+
+        return ResponseEntity.ok(tickets);
+    }
 }

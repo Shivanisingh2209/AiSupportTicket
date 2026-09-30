@@ -303,4 +303,19 @@ public class TicketService {
 
         return ticketRepository.save(ticket);
     }
+
+    public List<Ticket> getMyAssignedTickets() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String loggedInEmail = authentication.getName();
+
+        Agent agent =
+                agentService.getAgentByEmail(loggedInEmail);
+
+        return ticketRepository.findByAgentId(agent.getId());
+    }
 }
