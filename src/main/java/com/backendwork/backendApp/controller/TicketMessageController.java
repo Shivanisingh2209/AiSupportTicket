@@ -139,4 +139,94 @@ public class TicketMessageController {
 
         return ResponseEntity.ok(messages);
     }
+
+    @PutMapping("/{ticketId}/messages/{messageId}")
+    public ResponseEntity<TicketMessage> updateMessage(
+            @PathVariable String ticketId,
+            @PathVariable String messageId,
+            @RequestBody CreateTicketMessageRequest request
+    ) {
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String email = authentication.getName();
+
+        TicketMessage message =
+                ticketMessageService.getMessageById(messageId);
+
+        boolean isAgent =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(
+                                authority ->
+                                        authority.getAuthority()
+                                                .equals("ROLE_AGENT")
+                        );
+
+        if (!isAgent) {
+            throw new AccessDeniedException(
+                    "Only agents can edit messages"
+            );
+        }
+
+        Agent agent = agentService.getAgentByEmail(email);
+
+        if (!agent.getId().equals(message.getSenderId())) {
+            throw new AccessDeniedException(
+                    "You can only edit your own messages"
+            );
+        }
+
+        message.setMessage(request.getMessage());
+
+        TicketMessage updatedMessage =
+                ticketMessageService.saveMessage(message);
+
+        return ResponseEntity.ok(updatedMessage);
+    }
+
+    @DeleteMapping("/{ticketId}/messages/{messageId}")
+    public ResponseEntity<Void> deleteMessage(
+            @PathVariable String ticketId,
+            @PathVariable String messageId
+    ) {
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String email = authentication.getName();
+
+        TicketMessage message =
+                ticketMessageService.getMessageById(messageId);
+
+        boolean isAgent =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(
+                                authority ->
+                                        authority.getAuthority()
+                                                .equals("ROLE_AGENT")
+                        );
+
+        if (!isAgent) {
+            throw new AccessDeniedException(
+                    "Only agents can delete messages"
+            );
+        }
+
+        Agent agent = agentService.getAgentByEmail(email);
+
+        if (!agent.getId().equals(message.getSenderId())) {
+            throw new AccessDeniedException(
+                    "You can only delete your own messages"
+            );
+        }
+
+        ticketMessageService.deleteMessage(messageId);
+
+        return ResponseEntity.noContent().build();
+    }
 }

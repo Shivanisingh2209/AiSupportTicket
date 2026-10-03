@@ -37,4 +37,21 @@ public class TicketMessageService {
         return ticketMessageRepository
                 .findByTicketIdOrderByCreatedAtAsc(ticketId);
     }
+
+    public TicketMessage getMessageById(String messageId) {
+        return ticketMessageRepository
+                .findById(messageId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Message not found"
+                        ));
+    }
+
+    public TicketMessage saveMessage(TicketMessage message) {
+        return ticketMessageRepository.save(message);
+    }
+
+    public void deleteMessage(String messageId) {
+        ticketMessageRepository.deleteById(messageId);
+    }
 }
