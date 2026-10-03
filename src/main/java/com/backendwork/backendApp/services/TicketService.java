@@ -36,6 +36,9 @@ public class TicketService {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private RedisService redisService;
+
     public Page<TicketResponse> getTickets(Pageable pageable) {
         return ticketRepository
                 .findAll(pageable)
@@ -93,12 +96,51 @@ public class TicketService {
     }
 
     public Ticket getTicketById(String id) {
-        return ticketRepository
+        String key = "ticket:" + id;
+
+        String cachedTicket = redisService.get(key);
+
+        if(cachedTicket != null) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+                        new com.fasterxml.jackson.databind.ObjectMapper();
+
+                return objectMapper.readValue(
+                        cachedTicket,
+                        Ticket.class
+                );
+            } catch (Exception e) {
+                redisService.delete(key);
+            }
+        }
+
+        Ticket ticket = ticketRepository
                 .findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
+                        new RuntimeException(
                                 "Ticket not found with id :" + id
                         ));
+
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+                    new com.fasterxml.jackson.databind.ObjectMapper();
+
+            String ticketJson =
+                    objectMapper.writeValueAsString(ticket);
+
+            redisService.save(
+                    key,
+                    ticketJson,
+                    10
+            );
+        } catch (Exception e) {
+            System.out.println(
+                    "Failed to cache ticket in Redis: "
+                            + e.getMessage()
+            );
+        }
+
+        return ticket;
     }
 
     public List<Ticket> getMyTickets(String customerId) {
@@ -224,7 +266,11 @@ public class TicketService {
             existingTicket.setPriority(updatedTicket.getPriority());
         }
 
-        return ticketRepository.save(existingTicket);
+        Ticket savedTicket = ticketRepository.save(existingTicket);
+
+        redisService.delete("ticket:" + id);
+
+        return savedTicket;
     }
 
     public Ticket updateStatus(
