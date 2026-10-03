@@ -211,13 +211,23 @@ public class TicketMessageController {
                                                 .equals("ROLE_AGENT")
                         );
 
+        Agent agent = agentService.getAgentByEmail(email);
+
+        System.out.println("========== DELETE DEBUG ==========");
+        System.out.println("Email: " + email);
+        System.out.println("Authorities: " + authentication.getAuthorities());
+        System.out.println("Message ID: " + message.getId());
+        System.out.println("Sender ID: " + message.getSenderId());
+        System.out.println("Sender Role: " + message.getSenderRole());
+        System.out.println("Is Agent: " + isAgent);
+        System.out.println("Agent ID: " + agent.getId());
+        System.out.println("==================================");
+
         if (!isAgent) {
             throw new AccessDeniedException(
                     "Only agents can delete messages"
             );
         }
-
-        Agent agent = agentService.getAgentByEmail(email);
 
         if (!agent.getId().equals(message.getSenderId())) {
             throw new AccessDeniedException(

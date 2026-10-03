@@ -51,7 +51,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         .requestMatchers(HttpMethod.DELETE, "/tickets/**")
-                        .hasRole("ADMIN")
+                        .hasAnyRole("ADMIN", "AGENT")
 
                         .requestMatchers(HttpMethod.PUT, "/tickets/**")
                         .hasAnyRole("ADMIN", "AGENT")
