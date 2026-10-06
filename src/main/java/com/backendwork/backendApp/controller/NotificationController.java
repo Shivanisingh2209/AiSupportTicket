@@ -45,4 +45,12 @@ public class NotificationController {
         return notificationService
                 .getUnreadNotifications(userId);
     }
+
+    @PutMapping("/{notificationId}/read")
+    public Notification markAsRead(
+            @PathVariable String notificationId
+    ) {
+
+        return notificationService.markAsRead(notificationId);
+    }
 }

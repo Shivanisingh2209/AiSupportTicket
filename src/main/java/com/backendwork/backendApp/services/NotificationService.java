@@ -45,4 +45,19 @@ public class NotificationService {
         return notificationRepository
                 .findByUserIdAndReadFalseOrderByCreatedAtDesc(userId);
     }
+
+    public Notification markAsRead(String notificationId) {
+
+        Notification notification = notificationRepository
+                .findById(notificationId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Notification not found"
+                        )
+                );
+
+        notification.setRead(true);
+
+        return notificationRepository.save(notification);
+    }
 }
