@@ -60,6 +60,8 @@ public class SecurityConfig {
                                 "/tickets/stats"
                         ).permitAll()
 
+                        .requestMatchers("/chat").permitAll()
+
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/tickets/my"
