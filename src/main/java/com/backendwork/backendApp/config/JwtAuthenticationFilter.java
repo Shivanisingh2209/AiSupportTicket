@@ -31,7 +31,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        System.out.println("JWT FILTER CALLED");
+
         String authHeader = request.getHeader("Authorization");
+
+        System.out.println("AUTH HEADER: " + authHeader);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -43,6 +47,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (jwtService.isTokenVaild(token)) {
             String email = jwtService.extractEmail(token);
             String role = jwtService.extractRole(token);
+
+            System.out.println("JWT EMAIL: " + email);
+            System.out.println("JWT ROLE: " + role);
+            System.out.println("JWT AUTHORITY: ROLE_" + role);
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(

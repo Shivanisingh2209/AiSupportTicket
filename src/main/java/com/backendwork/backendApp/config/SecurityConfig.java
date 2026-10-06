@@ -19,7 +19,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -29,7 +31,11 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
-                .cors(Customizer.withDefaults())
+                .cors(cors ->
+                        cors.configurationSource(
+                                corsConfigurationSource()
+                        )
+                )
 
                 .csrf(csrf -> csrf.disable())
 
@@ -40,7 +46,11 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
 
                         .requestMatchers(
                                 "/auth/**",
@@ -50,19 +60,37 @@ public class SecurityConfig {
                                 "/tickets/stats"
                         ).permitAll()
 
-                        .requestMatchers(HttpMethod.DELETE, "/tickets/**")
-                        .hasAnyRole("ADMIN", "AGENT")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/tickets/my"
+                        )
+                        .hasRole("USER")
 
-                        .requestMatchers(HttpMethod.PUT, "/tickets/**")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/tickets"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/agents"
+                        ).hasAnyRole("ADMIN", "AGENT")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/tickets/**"
+                        )
                         .hasAnyRole("ADMIN", "AGENT")
 
                         .requestMatchers(
                                 HttpMethod.PATCH,
-                                "/tickets/*/auto-assign"
+                                "/tickets/*/auto-assign",
+                                "/tickets/*/assign/*"
                         )
                         .hasRole("ADMIN")
 
-                        .anyRequest().authenticated()
+                        .anyRequest()
+                        .authenticated()
                 )
 
                 .addFilterBefore(
@@ -76,7 +104,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration configuration = new CorsConfiguration();
+        CorsConfiguration configuration =
+                new CorsConfiguration();
 
         configuration.setAllowedOrigins(
                 List.of("http://localhost:5173")
@@ -87,13 +116,17 @@ public class SecurityConfig {
                         "GET",
                         "POST",
                         "PUT",
+                        "PATCH",
                         "DELETE",
                         "OPTIONS"
                 )
         );
 
         configuration.setAllowedHeaders(
-                List.of("*")
+                List.of(
+                        "Authorization",
+                        "Content-Type"
+                )
         );
 
         configuration.setAllowCredentials(true);

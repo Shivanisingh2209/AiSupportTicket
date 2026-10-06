@@ -241,4 +241,20 @@ public class TicketController {
                 TicketMapper.toResponse(ticket)
         );
     }
+
+    @PatchMapping("/{id}/assign/{agentId}")
+    public ResponseEntity<TicketResponse> assignTicketToAgent(
+            @PathVariable String id,
+            @PathVariable String agentId
+    ) {
+        Ticket ticket = ticketService.getTicketById(id);
+
+        ticket.setAgentId(agentId);
+
+        Ticket updatedTicket = ticketService.saveTicket(ticket);
+
+        return ResponseEntity.ok(
+                TicketMapper.toResponse(updatedTicket)
+        );
+    }
 }
