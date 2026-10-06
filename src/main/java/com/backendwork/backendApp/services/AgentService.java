@@ -61,23 +61,37 @@ public class AgentService {
         Agent agent = agentRepo.findByEmail(email).orElse(null);
 
         if (agent == null) {
-            System.out.println("LOGIN DEBUG: no agent found for email [" + email + "]");
+            System.out.println(
+                    "LOGIN DEBUG: no agent found for email [" + email + "]"
+            );
             throw new RuntimeException("Invalid email or password");
         }
 
         String stored = agent.getPassword();
-        boolean ok = stored != null && passwordEncoder.matches(password, stored);
 
-        System.out.println("LOGIN DEBUG: agent found, hash prefix ["
-                + (stored == null ? "null" : stored.substring(0, Math.min(7, stored.length())))
-                + "], encoder=" + passwordEncoder.getClass().getSimpleName()
-                + ", matches=" + ok);
+        boolean ok =
+                stored != null &&
+                        passwordEncoder.matches(password, stored);
+
+        System.out.println(
+                "LOGIN DEBUG: agent found, hash prefix ["
+                        + (stored == null
+                        ? "null"
+                        : stored.substring(
+                        0,
+                        Math.min(7, stored.length())
+                ))
+                        + "], encoder="
+                        + passwordEncoder.getClass().getSimpleName()
+                        + ", matches=" + ok
+        );
 
         if (!ok) {
             throw new RuntimeException("Invalid email or password");
         }
 
         return jwtService.generateToken(
+                agent.getId(),
                 agent.getEmail(),
                 "AGENT"
         );

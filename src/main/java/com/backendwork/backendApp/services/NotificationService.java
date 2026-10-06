@@ -40,4 +40,9 @@ public class NotificationService {
         return notificationRepository
                 .findByUserIdOrderByCreatedAtDesc(userId);
     }
+
+    public List<Notification> getUnreadNotifications(String userId) {
+        return notificationRepository
+                .findByUserIdAndReadFalseOrderByCreatedAtDesc(userId);
+    }
 }

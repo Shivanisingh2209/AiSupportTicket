@@ -18,10 +18,12 @@ public class JwtService {
             Keys.hmacShaKeyFor(
                     SECRET_KEY.getBytes(StandardCharsets.UTF_8)
             );
-    public String generateToken(String email, String role) {
+
+    public String generateToken(String userId, String email, String role) {
 
         return Jwts.builder()
                 .subject(email)
+                .claim("userId", userId)
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(
@@ -40,6 +42,15 @@ public class JwtService {
                 .getSubject();
     }
 
+    public String extractUserId(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("userId", String.class);
+    }
+
     public boolean isTokenVaild(String token) {
         try {
             Jwts.parser()
@@ -54,7 +65,6 @@ public class JwtService {
     }
 
     public String extractRole(String token) {
-
         return Jwts.parser()
                 .verifyWith(key)
                 .build()

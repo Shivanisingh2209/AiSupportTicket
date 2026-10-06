@@ -37,4 +37,12 @@ public class NotificationController {
         return notificationService
                 .getUserNotifications(userId);
     }
+
+    @GetMapping("/user/{userId}/unread")
+    public List<Notification> getUnreadNotifications(
+            @PathVariable String userId) {
+
+        return notificationService
+                .getUnreadNotifications(userId);
+    }
 }
