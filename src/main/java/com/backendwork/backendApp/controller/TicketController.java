@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.backendwork.backendApp.entity.Agent;
+import com.backendwork.backendApp.services.AgentService;
 
 import java.util.*;
 
@@ -26,6 +28,9 @@ public class TicketController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private AgentService agentService;
 
     @PostMapping
     public ResponseEntity<TicketResponse> createTicket(
@@ -122,18 +127,18 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<TicketResponse> getTicketById(
-            @PathVariable String id
-    ) {
-
-        Ticket ticket = ticketService.getTicketById(id);
-
-        TicketResponse response =
-                TicketMapper.toResponse(ticket);
-
-        return ResponseEntity.ok(response);
-    }
+//    @GetMapping("/{id}")
+//    public ResponseEntity<TicketResponse> getTicketById(
+//            @PathVariable String id
+//    ) {
+//
+//        Ticket ticket = ticketService.getTicketById(id);
+//
+//        TicketResponse response =
+//                TicketMapper.toResponse(ticket);
+//
+//        return ResponseEntity.ok(response);
+//    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTicketById(@PathVariable String id) {
@@ -257,4 +262,90 @@ public class TicketController {
                 TicketMapper.toResponse(updatedTicket)
         );
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TicketResponse> getTicketById(
+            @PathVariable String id
+    ) {
+        Ticket ticket = ticketService.getTicketById(id);
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String email = authentication.getName();
+
+        System.out.println("========== TICKET DETAILS ==========");
+        System.out.println("Ticket ID: " + id);
+        System.out.println("Authenticated user: " + email);
+
+        // First try USER/ADMIN
+        User user = null;
+
+        try {
+            user = userService.getUserByEmail(email);
+        } catch (Exception e) {
+            System.out.println("User not found for email: " + email);
+        }
+
+        // ADMIN / CUSTOMER
+        if (user != null) {
+
+            System.out.println("User ID: " + user.getId());
+            System.out.println("User Role: " + user.getRole());
+
+            String role = user.getRole();
+
+            // ADMIN can view any ticket
+            if ("ADMIN".equals(role)) {
+                return ResponseEntity.ok(
+                        TicketMapper.toResponse(ticket)
+                );
+            }
+
+            // CUSTOMER can view only their own ticket
+            if ("USER".equals(role)) {
+
+                if (!user.getId().equals(ticket.getCustomerId())) {
+                    return ResponseEntity
+                            .status(HttpStatus.FORBIDDEN)
+                            .build();
+                }
+
+                return ResponseEntity.ok(
+                        TicketMapper.toResponse(ticket)
+                );
+            }
+        }
+
+        // AGENT
+        try {
+            Agent agent = agentService.getAgentByEmail(email);
+
+            System.out.println("Agent ID: " + agent.getId());
+            System.out.println("Agent Name: " + agent.getName());
+
+            if (!agent.getId().equals(ticket.getAgentId())) {
+                return ResponseEntity
+                        .status(HttpStatus.FORBIDDEN)
+                        .build();
+            }
+
+            return ResponseEntity.ok(
+                    TicketMapper.toResponse(ticket)
+            );
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Agent not found for email: " + email
+            );
+
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
+    }
+
 }
