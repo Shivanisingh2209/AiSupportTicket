@@ -7,7 +7,6 @@ import com.backendwork.backendApp.entity.TicketStatus;
 import com.backendwork.backendApp.entity.User;
 import com.backendwork.backendApp.exception.AgentNotFoundException;
 import com.backendwork.backendApp.exception.CustomerNotFoundException;
-import com.backendwork.backendApp.exception.ResourceNotFoundException;
 import com.backendwork.backendApp.exception.TicketNotFoundException;
 import com.backendwork.backendApp.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +16,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import java.util.*;
 
+import java.util.*;
 import java.util.List;
 
 @Service
@@ -38,6 +37,9 @@ public class TicketService {
 
     @Autowired
     private RedisService redisService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     public Page<TicketResponse> getTickets(Pageable pageable) {
         return ticketRepository
@@ -90,18 +92,19 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-
     public List<Ticket> getAllTickets() {
         return ticketRepository.findAll();
     }
 
     public Ticket getTicketById(String id) {
+
         String key = "ticket:" + id;
 
         String cachedTicket = redisService.get(key);
 
-        if(cachedTicket != null) {
+        if (cachedTicket != null) {
             try {
+
                 com.fasterxml.jackson.databind.ObjectMapper objectMapper =
                         new com.fasterxml.jackson.databind.ObjectMapper();
 
@@ -109,6 +112,7 @@ public class TicketService {
                         cachedTicket,
                         Ticket.class
                 );
+
             } catch (Exception e) {
                 redisService.delete(key);
             }
@@ -122,6 +126,7 @@ public class TicketService {
                         ));
 
         try {
+
             com.fasterxml.jackson.databind.ObjectMapper objectMapper =
                     new com.fasterxml.jackson.databind.ObjectMapper();
 
@@ -133,7 +138,9 @@ public class TicketService {
                     ticketJson,
                     10
             );
+
         } catch (Exception e) {
+
             System.out.println(
                     "Failed to cache ticket in Redis: "
                             + e.getMessage()
@@ -161,23 +168,23 @@ public class TicketService {
 
     public Ticket updateTicket(String id, Ticket updatedTicket) {
 
-        Ticket existingTicket = ticketRepository.findById(id).orElseThrow(() ->
-                new TicketNotFoundException(
-                        "Ticket not found with id: " + id
-                )
-        );
+        Ticket existingTicket =
+                ticketRepository.findById(id).orElseThrow(() ->
+                        new TicketNotFoundException(
+                                "Ticket not found with id: " + id
+                        )
+                );
 
         if (existingTicket == null) {
             return null;
         }
 
-//        if (updatedTicket.getCustomerId() != null) {
-//            existingTicket.setCustomerId(updatedTicket.getCustomerId());
-//        }
-
         if (updatedTicket.getCustomerId() != null) {
 
-            if (!customerService.customerExists(updatedTicket.getCustomerId())) {
+            if (!customerService.customerExists(
+                    updatedTicket.getCustomerId()
+            )) {
+
                 throw new CustomerNotFoundException(
                         "Customer not found with id: "
                                 + updatedTicket.getCustomerId()
@@ -189,13 +196,12 @@ public class TicketService {
             );
         }
 
-//        if (updatedTicket.getAgentId() != null) {
-//            existingTicket.setAgentId(updatedTicket.getAgentId());
-//        }
-
         if (updatedTicket.getAgentId() != null) {
 
-            if (!agentService.agentExists(updatedTicket.getAgentId())) {
+            if (!agentService.agentExists(
+                    updatedTicket.getAgentId()
+            )) {
+
                 throw new AgentNotFoundException(
                         "Agent not found with id: "
                                 + updatedTicket.getAgentId()
@@ -208,19 +214,27 @@ public class TicketService {
         }
 
         if (updatedTicket.getCustomerName() != null) {
-            existingTicket.setCustomerName(updatedTicket.getCustomerName());
+            existingTicket.setCustomerName(
+                    updatedTicket.getCustomerName()
+            );
         }
 
         if (updatedTicket.getCustomerEmail() != null) {
-            existingTicket.setCustomerEmail(updatedTicket.getCustomerEmail());
+            existingTicket.setCustomerEmail(
+                    updatedTicket.getCustomerEmail()
+            );
         }
 
         if (updatedTicket.getSubject() != null) {
-            existingTicket.setSubject(updatedTicket.getSubject());
+            existingTicket.setSubject(
+                    updatedTicket.getSubject()
+            );
         }
 
         if (updatedTicket.getDescription() != null) {
-            existingTicket.setDescription(updatedTicket.getDescription());
+            existingTicket.setDescription(
+                    updatedTicket.getDescription()
+            );
         }
 
         if (updatedTicket.getStatus() != null) {
@@ -257,21 +271,43 @@ public class TicketService {
                 );
             }
 
-            existingTicket.setStatus(
-                    updatedTicket.getStatus().toUpperCase()
+            String oldStatus = existingTicket.getStatus();
+
+            String newStatus =
+                    updatedTicket.getStatus().toUpperCase();
+
+            existingTicket.setStatus(newStatus);
+
+            createStatusNotification(
+                    existingTicket,
+                    oldStatus,
+                    newStatus
             );
         }
 
         if (updatedTicket.getPriority() != null) {
-            existingTicket.setPriority(updatedTicket.getPriority());
+
+            existingTicket.setPriority(
+                    updatedTicket.getPriority()
+            );
         }
 
-        Ticket savedTicket = ticketRepository.save(existingTicket);
+        Ticket savedTicket =
+                ticketRepository.save(existingTicket);
 
-        redisService.delete("ticket:" + id);
+        redisService.delete(
+                "ticket:" + id
+        );
 
         return savedTicket;
     }
+
+    // =========================================================
+    // UPDATE STATUS
+    // ADMIN → Can update any ticket
+    // AGENT → Can update only assigned ticket
+    // CUSTOMER → Cannot update status
+    // =========================================================
 
     public Ticket updateStatus(
             String ticketId,
@@ -288,28 +324,24 @@ public class TicketService {
         String loggedInEmail =
                 authentication.getName();
 
-        Agent loggedInAgent =
-                agentService.getAgentByEmail(loggedInEmail);
+        String role =
+                authentication.getAuthorities()
+                        .stream()
+                        .map(authority ->
+                                authority.getAuthority()
+                        )
+                        .findFirst()
+                        .orElse("");
 
-        if (ticket.getAgentId() == null) {
-            throw new IllegalStateException(
-                    "Ticket is not assigned to any agent"
-            );
-        }
-
-        if (!ticket.getAgentId().equals(
-                loggedInAgent.getId()
-        )) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "You are not authorized to update this ticket"
-            );
-        }
-
+        // Validate status
         try {
+
             TicketStatus.valueOf(
                     status.toUpperCase()
             );
+
         } catch (IllegalArgumentException e) {
+
             throw new IllegalArgumentException(
                     "Invalid ticket status: "
                             + status
@@ -317,38 +349,156 @@ public class TicketService {
             );
         }
 
-        ticket.setStatus(
-                status.toUpperCase()
-        );
+        String oldStatus =
+                ticket.getStatus();
 
-        return ticketRepository.save(ticket);
+        String newStatus =
+                status.toUpperCase();
+
+        // =====================================================
+        // ADMIN
+        // Admin can update ANY ticket
+        // =====================================================
+
+        if ("ROLE_ADMIN".equals(role)
+                || "ADMIN".equals(role)) {
+
+            ticket.setStatus(newStatus);
+
+            Ticket savedTicket =
+                    ticketRepository.save(ticket);
+
+            createStatusNotification(
+                    savedTicket,
+                    oldStatus,
+                    newStatus
+            );
+
+            redisService.delete(
+                    "ticket:" + ticketId
+            );
+
+            return savedTicket;
+        }
+
+        // =====================================================
+        // AGENT
+        // Agent can update ONLY assigned ticket
+        // =====================================================
+
+        if ("ROLE_AGENT".equals(role)
+                || "AGENT".equals(role)) {
+
+            Agent loggedInAgent =
+                    agentService.getAgentByEmail(
+                            loggedInEmail
+                    );
+
+            if (ticket.getAgentId() == null) {
+
+                throw new IllegalStateException(
+                        "Ticket is not assigned to any agent"
+                );
+            }
+
+            if (!ticket.getAgentId().equals(
+                    loggedInAgent.getId()
+            )) {
+
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "You are not authorized to update this ticket"
+                );
+            }
+
+            ticket.setStatus(newStatus);
+
+            Ticket savedTicket =
+                    ticketRepository.save(ticket);
+
+            createStatusNotification(
+                    savedTicket,
+                    oldStatus,
+                    newStatus
+            );
+
+            redisService.delete(
+                    "ticket:" + ticketId
+            );
+
+            return savedTicket;
+        }
+
+        // =====================================================
+        // CUSTOMER / USER
+        // Cannot update status
+        // =====================================================
+
+        throw new org.springframework.security.access.AccessDeniedException(
+                "You are not authorized to update ticket status"
+        );
     }
 
     public Ticket saveTicket(Ticket ticket) {
         return ticketRepository.save(ticket);
     }
 
-    public Ticket closeTicketByCustomer(String ticketId, String customerEmail) {
+    public Ticket closeTicketByCustomer(
+            String ticketId,
+            String customerEmail
+    ) {
 
-        Ticket ticket = getTicketById(ticketId);
+        Ticket ticket =
+                getTicketById(ticketId);
 
-        User customer = userService.getUserByEmail(customerEmail);
+        User customer =
+                userService.getUserByEmail(
+                        customerEmail
+                );
 
         if (ticket.getCustomerId() == null) {
-            throw new IllegalStateException("Ticket has no customer assigned");
+
+            throw new IllegalStateException(
+                    "Ticket has no customer assigned"
+            );
         }
 
-        if(!ticket.getCustomerId().equals(customer.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to close this ticket");
+        if (!ticket.getCustomerId().equals(
+                customer.getId()
+        )) {
+
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not authorized to close this ticket"
+            );
         }
 
-        if (!"RESOLVED".equalsIgnoreCase(ticket.getStatus())) {
-            throw new IllegalStateException("Only Resolved tickets can be closed");
+        if (!"RESOLVED".equalsIgnoreCase(
+                ticket.getStatus()
+        )) {
+
+            throw new IllegalStateException(
+                    "Only Resolved tickets can be closed"
+            );
         }
+
+        String oldStatus =
+                ticket.getStatus();
 
         ticket.setStatus("CLOSED");
 
-        return ticketRepository.save(ticket);
+        Ticket savedTicket =
+                ticketRepository.save(ticket);
+
+        createStatusNotification(
+                savedTicket,
+                oldStatus,
+                "CLOSED"
+        );
+
+        redisService.delete(
+                "ticket:" + ticketId
+        );
+
+        return savedTicket;
     }
 
     public List<Ticket> getMyAssignedTickets() {
@@ -358,38 +508,120 @@ public class TicketService {
                         .getContext()
                         .getAuthentication();
 
-        String loggedInEmail = authentication.getName();
+        String loggedInEmail =
+                authentication.getName();
 
         Agent agent =
-                agentService.getAgentByEmail(loggedInEmail);
+                agentService.getAgentByEmail(
+                        loggedInEmail
+                );
 
-        return ticketRepository.findByAgentId(agent.getId());
+        return ticketRepository.findByAgentId(
+                agent.getId()
+        );
     }
 
     public Map<String, Long> getTicketStatistics() {
-        Map<String, Long> stats = new LinkedHashMap<>();
 
-        stats.put("total", ticketRepository.count());
+        Map<String, Long> stats =
+                new LinkedHashMap<>();
 
-        stats.put("open", ticketRepository.countByStatus("OPEN"));
+        stats.put(
+                "total",
+                ticketRepository.count()
+        );
 
-        stats.put("inProgress", ticketRepository.countByStatus("IN_PROGRESS"));
+        stats.put(
+                "open",
+                ticketRepository.countByStatus("OPEN")
+        );
 
-        stats.put("resolved", ticketRepository.countByStatus("RESOLVED"));
+        stats.put(
+                "inProgress",
+                ticketRepository.countByStatus("IN_PROGRESS")
+        );
 
-        stats.put("closed", ticketRepository.countByStatus("CLOSED"));
+        stats.put(
+                "resolved",
+                ticketRepository.countByStatus("RESOLVED")
+        );
+
+        stats.put(
+                "closed",
+                ticketRepository.countByStatus("CLOSED")
+        );
 
         return stats;
     }
 
-    public Ticket autoAssignTicket(String ticketId) {
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Ticket not found with id: " + ticketId
-                        ));
+    private void createStatusNotification(
+            Ticket ticket,
+            String oldStatus,
+            String newStatus
+    ) {
+
+        if (ticket.getCustomerId() == null ||
+                ticket.getCustomerId().isBlank()) {
+            return;
+        }
+
+        if (oldStatus != null &&
+                oldStatus.equalsIgnoreCase(newStatus)) {
+            return;
+        }
+
+        User customer = userService
+                .getUserByEmail(ticket.getCustomerEmail());
+
+        String message;
+
+        switch (newStatus.toUpperCase()) {
+
+            case "IN_PROGRESS":
+                message = "Your ticket is now being worked on.";
+                break;
+
+            case "RESOLVED":
+                message = "Your ticket has been resolved.";
+                break;
+
+            case "CLOSED":
+                message = "Your ticket has been closed.";
+                break;
+
+            case "OPEN":
+                message = "Your ticket has been reopened.";
+                break;
+
+            default:
+                message = "Your ticket status has been updated to "
+                        + newStatus + ".";
+        }
+
+        notificationService.createNotification(
+                customer.getId(),
+                customer.getName(),
+                message,
+                "STATUS",
+                ticket.getId()
+        );
+    }
+
+    public Ticket autoAssignTicket(
+            String ticketId
+    ) {
+
+        Ticket ticket =
+                ticketRepository.findById(ticketId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Ticket not found with id: "
+                                                + ticketId
+                                )
+                        );
 
         if (ticket.getAgentId() != null) {
+
             throw new IllegalStateException(
                     "Ticket is already assigned to an agent"
             );
@@ -398,7 +630,9 @@ public class TicketService {
         Agent agent =
                 agentService.getLeastLoadedAvailableAgent();
 
-        ticket.setAgentId(agent.getId());
+        ticket.setAgentId(
+                agent.getId()
+        );
 
         return ticketRepository.save(ticket);
     }
