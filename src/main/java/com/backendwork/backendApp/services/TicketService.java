@@ -428,10 +428,6 @@ public class TicketService {
             return savedTicket;
         }
 
-        // =====================================================
-        // CUSTOMER / USER
-        // Cannot update status
-        // =====================================================
 
         throw new org.springframework.security.access.AccessDeniedException(
                 "You are not authorized to update ticket status"
@@ -442,43 +438,7 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-    public Ticket closeTicketByCustomer(
-            String ticketId,
-            String customerEmail
-    ) {
-
-        Ticket ticket =
-                getTicketById(ticketId);
-
-        User customer =
-                userService.getUserByEmail(
-                        customerEmail
-                );
-
-        if (ticket.getCustomerId() == null) {
-
-            throw new IllegalStateException(
-                    "Ticket has no customer assigned"
-            );
-        }
-
-        if (!ticket.getCustomerId().equals(
-                customer.getId()
-        )) {
-
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "You are not authorized to close this ticket"
-            );
-        }
-
-        if (!"RESOLVED".equalsIgnoreCase(
-                ticket.getStatus()
-        )) {
-
-            throw new IllegalStateException(
-                    "Only Resolved tickets can be closed"
-            );
-        }
+    private Ticket performClose(Ticket ticket) {
 
         String oldStatus =
                 ticket.getStatus();
@@ -495,10 +455,107 @@ public class TicketService {
         );
 
         redisService.delete(
-                "ticket:" + ticketId
+                "ticket:" + ticket.getId()
         );
 
         return savedTicket;
+    }
+
+    public Ticket closeTicket(String ticketId) {
+
+        Ticket ticket = getTicketById(ticketId);
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String email = authentication.getName();
+
+        String role =
+                authentication.getAuthorities()
+                        .stream()
+                        .map(authority -> authority.getAuthority())
+                        .findFirst()
+                        .orElse("");
+
+        // ==========================================
+        // ADMIN
+        // ==========================================
+
+        if ("ROLE_ADMIN".equals(role)
+                || "ADMIN".equals(role)) {
+
+            return performClose(ticket);
+        }
+
+        // ==========================================
+        // AGENT
+        // ==========================================
+
+        if ("ROLE_AGENT".equals(role)
+                || "AGENT".equals(role)) {
+
+            Agent agent =
+                    agentService.getAgentByEmail(email);
+
+            if (ticket.getAgentId() == null) {
+
+                throw new IllegalStateException(
+                        "Ticket is not assigned to any agent"
+                );
+            }
+
+            if (!ticket.getAgentId().equals(agent.getId())) {
+
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "You are not authorized to close this ticket"
+                );
+            }
+
+            return performClose(ticket);
+        }
+
+        // ==========================================
+        // CUSTOMER
+        // ==========================================
+
+        if ("ROLE_USER".equals(role)
+                || "USER".equals(role)) {
+
+            User customer =
+                    userService.getUserByEmail(email);
+
+            if (ticket.getCustomerId() == null) {
+
+                throw new IllegalStateException(
+                        "Ticket has no customer assigned"
+                );
+            }
+
+            if (!ticket.getCustomerId()
+                    .equals(customer.getId())) {
+
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "You are not authorized to close this ticket"
+                );
+            }
+
+            if (!"RESOLVED".equalsIgnoreCase(
+                    ticket.getStatus()
+            )) {
+
+                throw new IllegalStateException(
+                        "Only Resolved tickets can be closed"
+                );
+            }
+
+            return performClose(ticket);
+        }
+
+        throw new org.springframework.security.access.AccessDeniedException(
+                "You are not authorized to close this ticket"
+        );
     }
 
     public List<Ticket> getMyAssignedTickets() {
@@ -635,5 +692,30 @@ public class TicketService {
         );
 
         return ticketRepository.save(ticket);
+    }
+
+    public Ticket assignTicketToAgent(
+            String ticketId,
+            String agentId
+    ) {
+
+        Ticket ticket = getTicketById(ticketId);
+
+        if (!agentService.agentExists(agentId)) {
+            throw new AgentNotFoundException(
+                    "Agent not found with id: " + agentId
+            );
+        }
+
+        ticket.setAgentId(agentId);
+
+        Ticket savedTicket =
+                ticketRepository.save(ticket);
+
+        redisService.delete(
+                "ticket:" + ticketId
+        );
+
+        return savedTicket;
     }
 }

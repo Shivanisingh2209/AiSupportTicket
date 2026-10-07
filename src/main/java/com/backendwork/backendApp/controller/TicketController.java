@@ -202,23 +202,16 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/close")
-    public ResponseEntity<TicketResponse> closeTicket(@PathVariable String id) {
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        String customerEmail = authentication.getName();
+    public ResponseEntity<TicketResponse> closeTicket(
+            @PathVariable String id
+    ) {
 
         Ticket closedTicket =
-                ticketService.closeTicketByCustomer(
-                        id,
-                        customerEmail
-                );
+                ticketService.closeTicket(id);
 
-        TicketResponse response = TicketMapper.toResponse(closedTicket);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                TicketMapper.toResponse(closedTicket)
+        );
     }
 
     @GetMapping("/agent/my")
@@ -252,11 +245,12 @@ public class TicketController {
             @PathVariable String id,
             @PathVariable String agentId
     ) {
-        Ticket ticket = ticketService.getTicketById(id);
 
-        ticket.setAgentId(agentId);
-
-        Ticket updatedTicket = ticketService.saveTicket(ticket);
+        Ticket updatedTicket =
+                ticketService.assignTicketToAgent(
+                        id,
+                        agentId
+                );
 
         return ResponseEntity.ok(
                 TicketMapper.toResponse(updatedTicket)
