@@ -62,6 +62,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/chat").permitAll()
 
+                        .requestMatchers("/kafka/test").permitAll()
+
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/tickets/my"

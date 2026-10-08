@@ -58,8 +58,31 @@ public class TicketController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<TicketResponse>> getAllTickets(Pageable pageable) {
-        Page<TicketResponse> tickets = ticketService.getTickets(pageable);
+    public ResponseEntity<Page<TicketResponse>> getAllTickets(
+            Pageable pageable
+    ) {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(auth ->
+                                auth.getAuthority().equals("ROLE_ADMIN")
+                        );
+
+        if (!isAdmin) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
+
+        Page<TicketResponse> tickets =
+                ticketService.getTickets(pageable);
+
         return ResponseEntity.ok(tickets);
     }
 
@@ -141,7 +164,28 @@ public class TicketController {
 //    }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTicketById(@PathVariable String id) {
+    public ResponseEntity<Void> deleteTicketById(
+            @PathVariable String id
+    ) {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(auth ->
+                                auth.getAuthority().equals("ROLE_ADMIN")
+                        );
+
+        if (!isAdmin) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
+
         ticketService.deleteTicketById(id);
 
         return ResponseEntity.noContent().build();
@@ -178,9 +222,47 @@ public class TicketController {
     public ResponseEntity<List<Ticket>> getTicketsByAgent(
             @PathVariable String agentId
     ) {
-        return ResponseEntity.ok(
-                ticketService.getTicketsByAgent(agentId)
-        );
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        String role =
+                authentication.getAuthorities()
+                        .stream()
+                        .map(auth -> auth.getAuthority())
+                        .findFirst()
+                        .orElse("");
+
+        if ("ROLE_ADMIN".equals(role)) {
+
+            return ResponseEntity.ok(
+                    ticketService.getTicketsByAgent(agentId)
+            );
+        }
+
+        if ("ROLE_AGENT".equals(role)) {
+
+            String email = authentication.getName();
+
+            Agent agent =
+                    agentService.getAgentByEmail(email);
+
+            if (!agent.getId().equals(agentId)) {
+                return ResponseEntity
+                        .status(HttpStatus.FORBIDDEN)
+                        .build();
+            }
+
+            return ResponseEntity.ok(
+                    ticketService.getTicketsByAgent(agentId)
+            );
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .build();
     }
 
     @PatchMapping("/{id}/status")
@@ -225,15 +307,55 @@ public class TicketController {
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Long>> getTicketStatistics() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(auth ->
+                                auth.getAuthority().equals("ROLE_ADMIN")
+                        );
+
+        if (!isAdmin) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
+
         return ResponseEntity.ok(
                 ticketService.getTicketStatistics()
         );
     }
 
     @PatchMapping("/{id}/auto-assign")
-    public ResponseEntity<TicketResponse> autoAssignTicket(@PathVariable String id) {
+    public ResponseEntity<TicketResponse> autoAssignTicket(
+            @PathVariable String id
+    ) {
 
-        Ticket ticket = ticketService.autoAssignTicket(id);
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(auth ->
+                                auth.getAuthority().equals("ROLE_ADMIN")
+                        );
+
+        if (!isAdmin) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
+
+        Ticket ticket =
+                ticketService.autoAssignTicket(id);
 
         return ResponseEntity.ok(
                 TicketMapper.toResponse(ticket)
@@ -245,6 +367,24 @@ public class TicketController {
             @PathVariable String id,
             @PathVariable String agentId
     ) {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(auth ->
+                                auth.getAuthority().equals("ROLE_ADMIN")
+                        );
+
+        if (!isAdmin) {
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
 
         Ticket updatedTicket =
                 ticketService.assignTicketToAgent(
