@@ -8,6 +8,8 @@ import com.backendwork.backendApp.entity.User;
 import com.backendwork.backendApp.exception.AgentNotFoundException;
 import com.backendwork.backendApp.exception.CustomerNotFoundException;
 import com.backendwork.backendApp.exception.TicketNotFoundException;
+import com.backendwork.backendApp.producer.TicketEventProducer;
+import com.backendwork.backendApp.events.TicketEvent;
 import com.backendwork.backendApp.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,12 @@ public class TicketService {
 
     @Autowired
     private NotificationService notificationService;
+
+    private final TicketEventProducer ticketEventProducer;
+
+    public TicketService(TicketEventProducer ticketEventProducer) {
+        this.ticketEventProducer = ticketEventProducer;
+    }
 
     public Page<TicketResponse> getTickets(Pageable pageable) {
         return ticketRepository
@@ -89,7 +97,23 @@ public class TicketService {
             ticket.setCreatedAt(new java.util.Date());
         }
 
-        return ticketRepository.save(ticket);
+        // Save ticket in MongoDB
+        Ticket savedTicket =
+                ticketRepository.save(ticket);
+
+        // Publish Kafka event
+        TicketEvent event =
+                new TicketEvent(
+                        savedTicket.getId(),
+                        savedTicket.getCustomerId(),
+                        savedTicket.getCustomerEmail(),
+                        "TICKET_CREATED",
+                        "A new support ticket has been created."
+                );
+
+        ticketEventProducer.sendTicketEvent(event);
+
+        return savedTicket;
     }
 
     public List<Ticket> getAllTickets() {
