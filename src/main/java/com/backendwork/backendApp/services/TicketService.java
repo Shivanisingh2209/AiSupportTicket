@@ -73,23 +73,23 @@ public class TicketService {
 
     public Ticket createTicket(Ticket ticket) {
 
-        if (ticket.getCustomerEmail() != null) {
+        if (ticket.getCustomerEmail() != null
+                && !ticket.getCustomerEmail().isBlank()) {
 
-            User customer =
-                    userService.getUserByEmail(
-                            ticket.getCustomerEmail()
-                    );
-
-            ticket.setCustomerId(
-                    customer.getId()
+            User customer = userService.getUserByEmail(
+                    ticket.getCustomerEmail()
             );
+
+            ticket.setCustomerId(customer.getId());
         }
 
-        if (ticket.getStatus() == null) {
+        if (ticket.getStatus() == null
+                || ticket.getStatus().isBlank()) {
             ticket.setStatus("OPEN");
         }
 
-        if (ticket.getPriority() == null) {
+        if (ticket.getPriority() == null
+                || ticket.getPriority().isBlank()) {
             ticket.setPriority("MEDIUM");
         }
 
@@ -97,21 +97,73 @@ public class TicketService {
             ticket.setCreatedAt(new java.util.Date());
         }
 
-        // Save ticket in MongoDB
-        Ticket savedTicket =
-                ticketRepository.save(ticket);
+        if (ticket.getAgentId() != null
+                && ticket.getAgentId().isBlank()) {
+            ticket.setAgentId(null);
+        }
 
-        // Publish Kafka event
-        TicketEvent event =
-                new TicketEvent(
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        TicketEvent createdEvent = new TicketEvent(
+                savedTicket.getId(),
+                savedTicket.getCustomerId(),
+                savedTicket.getCustomerEmail(),
+                "TICKET_CREATED",
+                "A new support ticket has been created."
+        );
+
+        ticketEventProducer.sendTicketEvent(createdEvent);
+
+        if (savedTicket.getAgentId() == null
+                || savedTicket.getAgentId().isBlank()) {
+
+            try {
+                Agent agent =
+                        agentService.getLeastLoadedAvailableAgent();
+
+                System.out.println(
+                        "Selected agent: " + agent.getName()
+                                + " | Status: " + agent.getStatus()
+                );
+
+                savedTicket.setAgentId(agent.getId());
+
+                savedTicket = ticketRepository.save(savedTicket);
+
+                redisService.delete(
+                        "ticket:" + savedTicket.getId()
+                );
+
+                TicketEvent assignedEvent = new TicketEvent(
                         savedTicket.getId(),
                         savedTicket.getCustomerId(),
                         savedTicket.getCustomerEmail(),
-                        "TICKET_CREATED",
-                        "A new support ticket has been created."
+                        "TICKET_ASSIGNED",
+                        "Ticket automatically assigned to agent: "
+                                + agent.getName()
                 );
 
-        ticketEventProducer.sendTicketEvent(event);
+                ticketEventProducer.sendTicketEvent(assignedEvent);
+
+                System.out.println(
+                        "Ticket " + savedTicket.getId()
+                                + " successfully assigned to "
+                                + agent.getName()
+                );
+
+            } catch (Exception e) {
+                System.err.println(
+                        "Automatic assignment failed for ticket: "
+                                + savedTicket.getId()
+                );
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println(
+                    "Ticket already has agent ID: "
+                            + savedTicket.getAgentId()
+            );
+        }
 
         return savedTicket;
     }
@@ -326,13 +378,6 @@ public class TicketService {
         return savedTicket;
     }
 
-    // =========================================================
-    // UPDATE STATUS
-    // ADMIN → Can update any ticket
-    // AGENT → Can update only assigned ticket
-    // CUSTOMER → Cannot update status
-    // =========================================================
-
     public Ticket updateStatus(
             String ticketId,
             String status
@@ -379,11 +424,6 @@ public class TicketService {
         String newStatus =
                 status.toUpperCase();
 
-        // =====================================================
-        // ADMIN
-        // Admin can update ANY ticket
-        // =====================================================
-
         if ("ROLE_ADMIN".equals(role)
                 || "ADMIN".equals(role)) {
 
@@ -398,17 +438,21 @@ public class TicketService {
                     newStatus
             );
 
-            redisService.delete(
-                    "ticket:" + ticketId
+
+            redisService.delete("ticket:" + ticketId);
+
+            TicketEvent event = new TicketEvent(
+                    savedTicket.getId(),
+                    savedTicket.getCustomerId(),
+                    savedTicket.getCustomerEmail(),
+                    "STATUS_CHANGED",
+                    "Ticket status changed from " + oldStatus + " to " + newStatus
             );
+
+            ticketEventProducer.sendTicketEvent(event);
 
             return savedTicket;
         }
-
-        // =====================================================
-        // AGENT
-        // Agent can update ONLY assigned ticket
-        // =====================================================
 
         if ("ROLE_AGENT".equals(role)
                 || "AGENT".equals(role)) {
@@ -445,9 +489,18 @@ public class TicketService {
                     newStatus
             );
 
-            redisService.delete(
-                    "ticket:" + ticketId
+
+            redisService.delete("ticket:" + ticketId);
+
+            TicketEvent event = new TicketEvent(
+                    savedTicket.getId(),
+                    savedTicket.getCustomerId(),
+                    savedTicket.getCustomerEmail(),
+                    "STATUS_CHANGED",
+                    "Ticket status changed from " + oldStatus + " to " + newStatus
             );
+
+            ticketEventProducer.sendTicketEvent(event);
 
             return savedTicket;
         }
@@ -688,41 +741,53 @@ public class TicketService {
         );
     }
 
-    public Ticket autoAssignTicket(
-            String ticketId
-    ) {
 
-        Ticket ticket =
-                ticketRepository.findById(ticketId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Ticket not found with id: "
-                                                + ticketId
-                                )
-                        );
+    public Ticket autoAssignTicket(String ticketId) {
+
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() ->
+                        new TicketNotFoundException(
+                                "Ticket not found with id: " + ticketId
+                        )
+                );
 
         if (ticket.getAgentId() != null) {
-
             throw new IllegalStateException(
                     "Ticket is already assigned to an agent"
             );
         }
 
-        Agent agent =
-                agentService.getLeastLoadedAvailableAgent();
+        // Find the least-loaded available agent
+        Agent agent = agentService.getLeastLoadedAvailableAgent();
 
-        ticket.setAgentId(
-                agent.getId()
+        // Assign ticket
+        ticket.setAgentId(agent.getId());
+
+        // Save in MongoDB
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        // Invalidate Redis cache
+        redisService.delete("ticket:" + ticketId);
+
+        // Publish Kafka event
+        TicketEvent event = new TicketEvent(
+                savedTicket.getId(),
+                savedTicket.getCustomerId(),
+                savedTicket.getCustomerEmail(),
+                "TICKET_ASSIGNED",
+                "Ticket has been automatically assigned to agent: "
+                        + agent.getId()
         );
 
-        return ticketRepository.save(ticket);
+        ticketEventProducer.sendTicketEvent(event);
+
+        return savedTicket;
     }
 
     public Ticket assignTicketToAgent(
             String ticketId,
             String agentId
     ) {
-
         Ticket ticket = getTicketById(ticketId);
 
         if (!agentService.agentExists(agentId)) {
@@ -733,12 +798,23 @@ public class TicketService {
 
         ticket.setAgentId(agentId);
 
-        Ticket savedTicket =
-                ticketRepository.save(ticket);
+        // Save updated ticket in MongoDB
+        Ticket savedTicket = ticketRepository.save(ticket);
 
-        redisService.delete(
-                "ticket:" + ticketId
+        // Invalidate Redis cache
+        redisService.delete("ticket:" + ticketId);
+
+        // Publish Kafka assignment event
+        TicketEvent event = new TicketEvent(
+                savedTicket.getId(),
+                savedTicket.getCustomerId(),
+                savedTicket.getCustomerEmail(),
+                "TICKET_ASSIGNED",
+                "Ticket has been assigned to agent with ID: "
+                        + savedTicket.getAgentId()
         );
+
+        ticketEventProducer.sendTicketEvent(event);
 
         return savedTicket;
     }

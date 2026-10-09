@@ -135,42 +135,55 @@ public class AgentService {
                         new RuntimeException("No available agent found"));
     }
 
+
     public Agent getLeastLoadedAvailableAgent() {
 
         List<Agent> availableAgents =
                 agentRepo.findByStatus("AVAILABLE");
 
-        if (availableAgents.isEmpty()) {
-            throw new RuntimeException(
-                    "No available agent found"
+        System.out.println(
+                "Available agents found: " + availableAgents.size()
+        );
+
+        for (Agent agent : availableAgents) {
+            long count = ticketRepository.countByAgentIdAndStatusIn(
+                    agent.getId(),
+                    List.of("OPEN", "IN_PROGRESS")
+            );
+
+            System.out.println(
+                    "Agent: " + agent.getName()
+                            + " | ID: " + agent.getId()
+                            + " | Status: " + agent.getStatus()
+                            + " | Active tickets: " + count
             );
         }
 
-        List<String> activeStatuses =
-                List.of("OPEN", "IN_PROGRESS");
+        if (availableAgents.isEmpty()) {
+            throw new IllegalStateException(
+                    "No agent has status AVAILABLE"
+            );
+        }
 
         return availableAgents.stream()
-                .min((agent1, agent2) -> {
-
+                .min((a1, a2) -> {
                     long count1 =
-                            ticketRepository
-                                    .countByAgentIdAndStatusIn(
-                                            agent1.getId(),
-                                            activeStatuses
-                                    );
+                            ticketRepository.countByAgentIdAndStatusIn(
+                                    a1.getId(),
+                                    List.of("OPEN", "IN_PROGRESS")
+                            );
 
                     long count2 =
-                            ticketRepository
-                                    .countByAgentIdAndStatusIn(
-                                            agent2.getId(),
-                                            activeStatuses
-                                    );
+                            ticketRepository.countByAgentIdAndStatusIn(
+                                    a2.getId(),
+                                    List.of("OPEN", "IN_PROGRESS")
+                            );
 
                     return Long.compare(count1, count2);
                 })
                 .orElseThrow(() ->
-                        new RuntimeException(
-                                "No available agent found"
+                        new IllegalStateException(
+                                "Unable to select an available agent"
                         )
                 );
     }
